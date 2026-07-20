@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ragstar - AI Data Analyst for dbt Projects</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #4361ee;
+        --secondary: #3f37c9;
+        --accent: #f72585;
+        --light: #f8f9fa;
+        --dark: #212529;
+        --gray: #6c757d;
+        --success: #4cc9f0;
+        --warning: #f77f00;
+        --danger: #d62828;
+        --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background-color: var(--light);
+        color: var(--dark);
+        line-height: 1.6;
+      }
+
+      a {
+        text-decoration: none;
+        color: var(--primary);
+        transition: all 0.3s ease;
+      }
+
+      a:hover {
+        color: var(--secondary);
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+
+      .nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 0;
+      }
+
+      .logo {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .logo i {
+        font-size: 1.8rem;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 2rem;
+      }
+
+      .nav-links a {
+        color: var(--dark);
+        font-weight: 500;
+      }
+
+      .nav-links a:hover {
+        color: var(--primary);
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        font-weight: 600;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        background: var(--gradient);
+        color: white;
+        border: none;
+      }
+
+      .btn-primary:hover {
+        background: linear-gradient(135deg, var(--secondary), var(--primary));
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+      }
+
+      .btn-secondary {
+        background: transparent;
+        color: var(--primary);
+        border: 2px solid var(--primary);
+      }
+
+      .btn-secondary:hover {
+        background: var(--primary);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.15);
+      }
+
+      .hero {
+        padding: 4rem 0;
+        text-align: center;
+        background: linear-gradient(
+            rgba(255, 255, 255, 0.9),
+            rgba(255, 255, 255, 0.9)
+          ),
+          url("/api/placeholder/1200/400") center/cover;
+        border-radius: 16px;
+        margin-bottom: 3rem;
+      }
+
+      .hero h1 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: var(--dark);
+      }
+
+      .hero p {
+        font-size: 1.25rem;
+        color: var(--gray);
+        margin-bottom: 2rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .badges {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin: 2rem 0;
+      }
+
+      .badge {
+        background-color: #f0f0f0;
+        color: var(--gray);
+        padding: 0.35rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .features {
+        padding: 4rem 0;
+      }
+
+      .section-title {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      .section-title h2 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        position: relative;
+        display: inline-block;
+      }
+
+      .section-title h2::after {
+        content: "";
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        height: 3px;
+        background: var(--primary);
+        border-radius: 2px;
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+      }
+
+      .feature-card {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+      }
+
+      .feature-icon {
+        background: var(--gradient);
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+      }
+
+      .feature-icon i {
+        color: white;
+        font-size: 1.5rem;
+      }
+
+      .feature-title {
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+      }
+
+      .use-cases {
+        padding: 4rem 0;
+        background-color: #f9f9f9;
+        border-radius: 16px;
+      }
+
+      .use-case-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+      }
+
+      .use-case-card {
+        display: flex;
+        flex-direction: column;
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+      }
+
+      .use-case-card i {
+        color: var(--primary);
+        font-size: 2rem;
+        margin-bottom: 1rem;
+      }
+
+      .architecture {
+        padding: 4rem 0;
+      }
+
+      .arch-diagram {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        margin-top: 2rem;
+        text-align: center;
+      }
+
+      .arch-diagram img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+      }
+
+      .setup {
+        padding: 4rem 0;
+        background-color: #f9f9f9;
+        border-radius: 16px;
+      }
+
+      .setup-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+      }
+
+      .setup-card {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      }
+
+      .setup-card h3 {
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .setup-card h3 i {
+        color: var(--primary);
+      }
+
+      .setup-card ol {
+        margin-left: 1.5rem;
+        margin-top: 1rem;
+      }
+
+      .setup-card li {
+        margin-bottom: 0.75rem;
+      }
+
+      .setup-card code {
+        background: #f5f5f5;
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 0.9rem;
+      }
+
+      .cta {
+        padding: 6rem 0;
+        text-align: center;
+        background: linear-gradient(
+            rgba(67, 97, 238, 0.1),
+            rgba(67, 97, 238, 0.1)
+          ),
+          url("/api/placeholder/1200/400") center/cover;
+        border-radius: 16px;
+        margin: 3rem 0;
+      }
+
+      .cta h2 {
+        font-size: 2.5rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .cta p {
+        margin-bottom: 2rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .cta-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .footer {
+        background-color: var(--dark);
+        color: white;
+        padding: 4rem 0 2rem;
+      }
+
+      .footer-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 2rem;
+      }
+
+      .footer-links h3 {
+        margin-bottom: 1.5rem;
+        font-size: 1.2rem;
+      }
+
+      .footer-links ul {
+        list-style: none;
+      }
+
+      .footer-links li {
+        margin-bottom: 0.75rem;
+      }
+
+      .footer-links a {
+        color: #adb5bd;
+        transition: color 0.3s ease;
+      }
+
+      .footer-links a:hover {
+        color: white;
+      }
+
+      .footer-bottom {
+        margin-top: 3rem;
+        text-align: center;
+        color: #6c757d;
+        padding-top: 2rem;
+        border-top: 1px solid #343a40;
+      }
+
+      .social-links {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .social-links a {
+        color: #adb5bd;
+        font-size: 1.2rem;
+        transition: color 0.3s ease;
+      }
+
+      .social-links a:hover {
+        color: white;
+      }
+
+      .code-block {
+        background: #2d333b;
+        color: #e6edf3;
+        border-radius: 8px;
+        padding: 1rem;
+        overflow-x: auto;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 0.9rem;
+        margin: 1rem 0;
+      }
+
+      .code-block pre {
+        margin: 0;
+      }
+
+      @media (max-width: 768px) {
+        .hero h1 {
+          font-size: 2.5rem;
+        }
+
+        .feature-grid,
+        .use-case-grid,
+        .setup-options {
+          grid-template-columns: 1fr;
+        }
+
+        .nav-links {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="nav">
+        <a href="#" class="logo">
+          <i class="fas fa-robot"></i>
+          Ragstar
+        </a>
+        <div class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#use-cases">Use Cases</a>
+          <a href="#architecture">Architecture</a>
+          <a href="#setup">Setup</a>
+          <a href="https://github.com/pragunbhutani/ragstar" target="_blank"
+            >GitHub</a
+          >
+        </div>
+      </nav>
+
+      <section class="hero">
+        <h1>Meet Ragstar</h1>
+        <p>Your AI Data Analyst for dbt Projects</p>
+        <div class="badges">
+          <span class="badge"><i class="fas fa-tag"></i> Beta</span>
+          <span class="badge"><i class="fab fa-python"></i> Python 3.10+</span>
+          <span class="badge"><i class="fab fa-github"></i> MIT License</span>
+          <span class="badge"><i class="fas fa-code"></i> Black</span>
+          <span class="badge"><i class="fas fa-check-circle"></i> MyPy</span>
+          <span class="badge"><i class="fas fa-bug"></i> Ruff</span>
+        </div>
+        <div>
+          <a
+            href="https://github.com/pragunbhutani/ragstar"
+            class="btn btn-primary"
+          >
+            <i class="fab fa-github"></i> View on GitHub
+          </a>
+          <a href="#setup" class="btn btn-secondary">Get Started</a>
+        </div>
+      </section>
+
+      <section class="features" id="features">
+        <div class="section-title">
+          <h2>Key Features</h2>
+          <p>Powerful AI capabilities for your dbt project</p>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-comments"></i>
+            </div>
+            <h3 class="feature-title">Natural Language Q&A</h3>
+            <p>
+              Ask questions about models, sources, metrics, lineage, and more in
+              plain English. Get answers that make sense, not just data dumps.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-brain"></i>
+            </div>
+            <h3 class="feature-title">Agentic Intelligence</h3>
+            <p>
+              Ragstar intelligently analyzes dbt models, understanding logic and
+              context to provide insights that matter to your team.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-file-alt"></i>
+            </div>
+            <h3 class="feature-title">Automated Documentation</h3>
+            <p>
+              Automatically generate model and column descriptions where they're
+              missing, improving data catalog quality.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-search"></i>
+            </div>
+            <h3 class="feature-title">Semantic Search</h3>
+            <p>
+              Find relevant assets based on meaning, not just keywords, making
+              data discovery intuitive and powerful.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fab fa-slack"></i>
+            </div>
+            <h3 class="feature-title">Slack Integration</h3>
+            <p>
+              Built-in Slackbot for easy interaction, bringing data insights
+              directly to your team's workflow.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-sync"></i>
+            </div>
+            <h3 class="feature-title">Feedback Loop</h3>
+            <p>
+              Track questions and feedback to continuously improve answers and
+              recommendations over time.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="use-cases" id="use-cases">
+        <div class="container">
+          <div class="section-title">
+            <h2>Use Cases</h2>
+            <p>How teams leverage Ragstar to improve data workflows</p>
+          </div>
+
+          <div class="use-case-grid">
+            <div class="use-case-card">
+              <i class="fas fa-bolt"></i>
+              <h3>Accelerate Data Discovery</h3>
+              <p>
+                Quickly find relevant dbt models and understand their purpose
+                without digging through code.
+              </p>
+            </div>
+
+            <div class="use-case-card">
+              <i class="fas fa-user-plus"></i>
+              <h3>Improve Onboarding</h3>
+              <p>
+                Help new team members understand the dbt project structure and
+                logic faster.
+              </p>
+            </div>
+
+            <div class="use-case-card">
+              <i class="fas fa-book"></i>
+              <h3>Maintain Documentation</h3>
+              <p>
+                Keep dbt documentation up-to-date with automated generation and
+                suggestions.
+              </p>
+            </div>
+
+            <div class="use-case-card">
+              <i class="fas fa-shield-alt"></i>
+              <h3>Enhance Data Governance</h3>
+              <p>
+                Gain better visibility into data lineage and model dependencies.
+              </p>
+            </div>
+
+            <div class="use-case-card">
+              <i class="fas fa-bug"></i>
+              <h3>Debug dbt Models</h3>
+              <p>
+                Ask clarifying questions about model logic and calculations.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="architecture" id="architecture">
+        <div class="section-title">
+          <h2>Architecture</h2>
+          <p>How Ragstar works under the hood</p>
+        </div>
+
+        <div class="arch-diagram">
+          <div style="text-align: left">
+            <h3>Key Components:</h3>
+            <ul
+              style="
+                list-style-type: disc;
+                margin-left: 1.5rem;
+                margin-top: 1rem;
+              "
+            >
+              <li>
+                <strong>dbt Project Parsing:</strong> Extracts comprehensive
+                metadata from dbt artifacts or source files.
+              </li>
+              <li>
+                <strong>PostgreSQL + pgvector:</strong> Central knowledge store
+                with vector embeddings for semantic search.
+              </li>
+              <li>
+                <strong>Vector Embeddings:</strong> Numerical representations of
+                model documentation capturing semantic meaning.
+              </li>
+              <li>
+                <strong>Large Language Models:</strong> Powers natural language
+                understanding and generation.
+              </li>
+              <li>
+                <strong>Agentic Reasoning:</strong> Step-by-step reasoning
+                process for model interpretation.
+              </li>
+              <li>
+                <strong>CLI Interface:</strong> Command-line tools for
+                interacting with the system.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="setup" id="setup">
+        <div class="section-title">
+          <h2>Setup & Installation</h2>
+          <p>Get started with Ragstar in minutes</p>
+        </div>
+
+        <div class="setup-options">
+          <div class="setup-card">
+            <h3><i class="fab fa-docker"></i> Docker Compose (Recommended)</h3>
+            <p>
+              The easiest way to get started with Ragstar is using Docker
+              Compose.
+            </p>
+            <ol>
+              <li>
+                Clone the repository:
+                <div class="code-block">
+                  <pre>
+git clone https://github.com/pragunbhutani/ragstar.git
+cd ragstar</pre
+                  >
+                </div>
+              </li>
+              <li>
+                Configure environment variables:
+                <div class="code-block">
+                  <pre>
+cp .env.example .env
+# Edit .env with your API keys and configuration</pre
+                  >
+                </div>
+              </li>
+              <li>
+                Build and run with Docker Compose:
+                <div class="code-block">
+                  <pre>docker compose up --build -d</pre>
+                </div>
+              </li>
+              <li>
+                Initialize with dbt project data:
+                <div class="code-block">
+                  <pre>
+docker compose exec app ragstar init cloud
+# or
+docker compose exec app ragstar init local
+# or
+docker compose exec app ragstar init source</pre
+                  >
+                </div>
+              </li>
+              <li>
+                Build the knowledge base:
+                <div class="code-block">
+                  <pre>docker compose exec app ragstar embed --select "*"</pre>
+                </div>
+              </li>
+            </ol>
+          </div>
+
+          <div class="setup-card">
+            <h3><i class="fab fa-python"></i> Local Python Environment</h3>
+            <p>For advanced users who prefer not to use Docker.</p>
+            <ol>
+              <li>
+                Check prerequisites:
+                <ul>
+                  <li>Python 3.10+</li>
+                  <li>Poetry</li>
+                  <li>PostgreSQL with pgvector</li>
+                </ul>
+              </li>
+              <li>
+                Clone and install:
+                <div class="code-block">
+                  <pre>
+git clone https://github.com/pragunbhutani/ragstar.git
+cd ragstar
+poetry install</pre
+                  >
+                </div>
+              </li>
+              <li>
+                Configure environment variables:
+                <div class="code-block">
+                  <pre>
+cp .env.example .env
+# Edit .env with your configuration</pre
+                  >
+                </div>
+              </li>
+              <li>
+                Initialize the database:
+                <div class="code-block">
+                  <pre>poetry run ragstar init-db</pre>
+                </div>
+              </li>
+              <li>
+                Load dbt project data:
+                <div class="code-block">
+                  <pre>
+poetry run ragstar init cloud
+# or
+poetry run ragstar init local</pre
+                  >
+                </div>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta">
+        <h2>Ready to democratize your data?</h2>
+        <p>
+          Ragstar makes it easy for anyone to ask questions about your dbt
+          project and get intelligent answers.
+        </p>
+        <div class="cta-buttons">
+          <a
+            href="https://github.com/pragunbhutani/ragstar"
+            class="btn btn-primary"
+          >
+            <i class="fab fa-github"></i> View on GitHub
+          </a>
+          <a
+            href="https://github.com/pragunbhutani/ragstar/issues"
+            class="btn btn-secondary"
+          >
+            <i class="fas fa-question-circle"></i> Get Support
+          </a>
+        </div>
+      </section>
+    </div>
+
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-container">
+          <div class="footer-links">
+            <h3>Ragstar</h3>
+            <ul>
+              <li><a href="#features">Features</a></li>
+              <li><a href="#use-cases">Use Cases</a></li>
+              <li><a href="#architecture">Architecture</a></li>
+              <li><a href="#setup">Setup</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-links">
+            <h3>Resources</h3>
+            <ul>
+              <li>
+                <a href="https://github.com/pragunbhutani/ragstar">GitHub</a>
+              </li>
+              <li>
+                <a href="https://github.com/pragunbhutani/ragstar/issues"
+                  >Issues</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/pragunbhutani/ragstar/blob/main/LICENSE"
+                  >License</a
+                >
+              </li>
+            </ul>
+          </div>
+
+          <div class="footer-links">
+            <h3>Connect</h3>
+            <ul>
+              <li>
+                <a href="https://github.com/pragunbhutani/ragstar/issues"
+                  >Support</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/pragunbhutani/ragstar/blob/main/CONTRIBUTING.md"
+                  >Contribute</a
+                >
+              </li>
+            </ul>
+            <div class="social-links">
+              <a href="https://github.com/pragunbhutani/ragstar"
+                ><i class="fab fa-github"></i
+              ></a>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <p>
+            &copy; 2023-2025
+            <a href="https://pragunbhutani.com">Pragun Bhutani</a>. Licensed
+            under <a href="https://opensource.org/licenses/MIT">MIT</a>.
+          </p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

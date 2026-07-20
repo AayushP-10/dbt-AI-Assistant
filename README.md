@@ -1,4 +1,4 @@
-````markdown
+
 # ModelAtlas AI
 
 ModelAtlas AI is a self-hosted AI assistant for exploring dbt projects through natural-language questions.
@@ -949,6 +949,3 @@ Possible extensions include:
 * Detecting stale documentation and broken model references
 
 ---
-
-```
-```

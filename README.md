@@ -1,2540 +1,954 @@
-# 
+````markdown
+# ModelAtlas AI
 
-# ```markdown
+ModelAtlas AI is a self-hosted AI assistant for exploring dbt projects through natural-language questions.
 
-# \# ModelAtlas AI
+It converts dbt models, metadata, documentation, SQL definitions, and lineage information into a searchable knowledge layer. Analysts and data teams can use the web application, Slack integration, or Model Context Protocol tools to locate models, understand transformations, investigate lineage, and retrieve project information without manually searching through large dbt repositories.
 
-# 
+---
 
-# 
+## Project Overview
 
-# ModelAtlas AI is a self-hosted AI assistant for exploring dbt projects through natural-language questions.
+Modern dbt projects can contain hundreds of models, dependencies, tests, source definitions, macros, and documentation files. As the project grows, analysts often spend significant time answering questions such as:
 
-# 
+- Which model contains a particular business metric?
+- How is a reporting table calculated?
+- What models exist within a specific schema?
+- Which upstream sources affect a downstream dashboard?
+- Where is customer revenue defined?
+- What SQL transformation creates a particular field?
+- Which model should be used for a new analysis?
 
-# It converts dbt models, metadata, documentation, SQL definitions, and lineage information into a searchable knowledge layer. Analysts and data teams can use the web application, Slack integration, or Model Context Protocol tools to locate models, understand transformations, investigate lineage, and retrieve project information without manually searching through large dbt repositories.
+ModelAtlas AI creates a searchable knowledge base from dbt project metadata and allows users to investigate that information using plain English.
 
-# 
+The platform combines semantic search with structured dbt metadata retrieval. Relevant models are located through embeddings and vector similarity, while detailed model attributes such as SQL, materialization, schema, dependencies, and lineage are retrieved from the application database.
 
-# 
+---
 
-# \## Project Overview
+## Problem Statement
 
-# 
+Finding information inside a large dbt project is often a manual process.
 
-# Modern dbt projects can contain hundreds of models, dependencies, tests, source definitions, macros, and documentation files. As the project grows, analysts often spend significant time answering questions such as:
+An analyst may need to search YAML files, inspect compiled SQL, trace model dependencies, read documentation, and contact data engineers before identifying the correct dataset. This creates several problems:
 
-# 
+- Analysts spend time locating data instead of analyzing it.
+- Business metric definitions can become inconsistent.
+- Existing models may be recreated because they are difficult to discover.
+- New team members require additional onboarding support.
+- Model ownership and lineage are not always immediately visible.
+- Documentation becomes less useful when it is distributed across many files.
 
-# \- Which model contains a particular business metric?
+ModelAtlas AI addresses this problem by creating a centralized conversational interface over dbt project knowledge.
 
-# \- How is a reporting table calculated?
+---
 
-# \- What models exist within a specific schema?
+## Core Capabilities
 
-# \- Which upstream sources affect a downstream dashboard?
+### Natural-Language Search
 
-# \- Where is customer revenue defined?
+Users can describe the information they need without knowing the exact model name.
 
-# \- What SQL transformation creates a particular field?
+Example questions include:
 
-# \- Which model should be used for a new analysis?
+```text
+Which models contain monthly customer revenue?
+````
 
-# 
+```text
+Show me the model used for product conversion reporting.
+```
 
-# ModelAtlas AI creates a searchable knowledge base from dbt project metadata and allows users to investigate that information using plain English.
+```text
+What models depend on the raw orders source?
+```
 
-# 
+```text
+Explain how customer lifetime value is calculated.
+```
 
-# The platform combines semantic search with structured dbt metadata retrieval. Relevant models are located through embeddings and vector similarity, while detailed model attributes such as SQL, materialization, schema, dependencies, and lineage are retrieved from the application database.
+The system embeds the question, searches the vector database, retrieves relevant dbt models, and returns the most useful project context.
 
-# 
+### Semantic Model Discovery
 
-# \---
+ModelAtlas AI uses embeddings and PostgreSQL with `pgvector` to identify models that are conceptually related to a question.
 
-# 
+This allows the platform to find useful models even when the user’s wording does not exactly match the model name or description.
 
-# \## Problem Statement
+### Model-Level Metadata
 
-# 
+The platform can expose information such as:
 
-# Finding information inside a large dbt project is often a manual process.
+* Model name
+* Project name
+* Database and schema
+* Materialization type
+* SQL definition
+* Model description
+* Columns
+* Tests
+* Tags
+* Upstream dependencies
+* Downstream dependencies
+* Source relationships
+* Project lineage
 
-# 
+### dbt Project Summaries
 
-# An analyst may need to search YAML files, inspect compiled SQL, trace model dependencies, read documentation, and contact data engineers before identifying the correct dataset. This creates several problems:
+Users can retrieve high-level information about connected dbt projects, including:
 
-# 
+* Number of models
+* Available schemas
+* Model organization
+* Materialization patterns
+* Project structure
+* Connected data assets
 
-# \- Analysts spend time locating data instead of analyzing it.
+### Web-Based Chat Interface
 
-# \- Business metric definitions can become inconsistent.
+The Next.js dashboard provides a browser-based interface for:
 
-# \- Existing models may be recreated because they are difficult to discover.
+* Managing organizations
+* Connecting dbt projects
+* Configuring integrations
+* Selecting language and embedding models
+* Asking questions
+* Reviewing generated responses
+* Managing provider credentials
 
-# \- New team members require additional onboarding support.
+### Slack Integration
+
+Teams can connect the application to Slack and ask dbt-related questions without leaving their workspace.
+
+### Model Context Protocol Support
+
+The included MCP server allows supported LLM clients to access selected dbt project capabilities through authenticated tools.
 
-# \- Model ownership and lineage are not always immediately visible.
+### Asynchronous Processing
+
+Celery workers process longer-running operations such as:
+
+* Project ingestion
+* Metadata extraction
+* Embedding generation
+* Knowledge-base updates
+* Background synchronization
+
+Redis is used as the default Celery message broker.
+
+---
+
+## System Architecture
+
+```mermaid
+flowchart LR
+    A[dbt Project] --> B[Project Ingestion]
+    B --> C[Metadata and Documentation Extraction]
+    C --> D[Django REST API]
+    C --> E[Embedding Generation]
+    E --> F[(PostgreSQL + pgvector)]
 
-# \- Documentation becomes less useful when it is distributed across many files.
+    G[Next.js Web Application] --> D
+    H[Slack Integration] --> D
+    I[MCP Client] --> J[MCP Server]
+    J --> D
 
-# 
+    D --> F
+    D --> K[LLM Provider]
+    D --> L[Celery Workers]
+    L --> M[Redis]
+    L --> F
 
-# ModelAtlas AI addresses this problem by creating a centralized conversational interface over dbt project knowledge.
+    K --> D
+    D --> G
+    D --> H
+    D --> J
+```
 
-# 
+### Request Flow
 
-# \---
+1. A dbt project is connected through dbt Cloud, GitHub, or a local upload.
+2. The backend extracts models, SQL, metadata, descriptions, and lineage.
+3. Relevant project content is converted into vector embeddings.
+4. Embeddings and structured metadata are stored in PostgreSQL.
+5. A user asks a question through the dashboard, Slack, or an MCP client.
+6. The question is converted into an embedding.
+7. `pgvector` retrieves semantically relevant models.
+8. The backend gathers structured model details.
+9. The configured LLM uses the retrieved context to produce a response.
+10. The result is returned to the user through the original interface.
 
-# 
+---
 
-# \## Core Capabilities
+## Technology Stack
 
-# 
+### Backend
 
-# \### Natural-Language Search
+* Python 3.10+
+* Django
+* Django REST Framework
+* Celery
+* Redis
+* PostgreSQL
+* `pgvector`
+* `uv`
 
-# 
+### Frontend
 
-# Users can describe the information they need without knowing the exact model name.
+* Next.js
+* React
+* TypeScript
+* NextAuth
+* Modern component-based user interface
 
-# 
+### AI and Retrieval
 
-# Example questions include:
+* Large language model APIs
+* Text embeddings
+* Retrieval-augmented generation
+* Vector similarity search
+* Configurable LLM providers
+* Configurable embedding models
 
-# 
+### Analytics Metadata
 
-# ```text
+* dbt project models
+* dbt documentation
+* Model SQL
+* Source definitions
+* Model dependencies
+* Lineage metadata
+* Schema and materialization information
 
-# Which models contain monthly customer revenue?
+### Integrations
 
-# 
+* dbt Cloud
+* GitHub
+* Slack
+* Model Context Protocol
+* AWS Parameter Store
+* LocalStack
 
-# ```
+### Infrastructure
 
-# 
+* Docker
+* Docker Compose
+* PostgreSQL container
+* Redis container
+* Django backend container
+* Next.js frontend container
+* Celery worker
+* Flower task-monitoring interface
+* MCP server
 
-# ```text
+---
 
-# Show me the model used for product conversion reporting.
+## Application Screens
 
-# 
+### Analytics Assistant
 
-# ```
+![Dashboard](docs/dashboard.png)
 
-# 
+The dashboard provides a conversational interface for exploring connected dbt projects and retrieving model information.
 
-# ```text
+### Integrations
 
-# What models depend on the raw orders source?
+![Integrations](docs/integrations.png)
 
-# 
+Projects and communication tools can be configured through the integrations interface.
 
-# ```
+### Application Settings
 
-# 
+![Settings](docs/settings.png)
 
-# ```text
+Users can configure LLM providers, embedding models, credentials, and other application settings.
 
-# Explain how customer lifetime value is calculated.
+---
 
-# 
+## Quick Start
 
-# ```
+### Prerequisites
 
-# 
+Install the following before starting:
 
-# The system embeds the question, searches the vector database, retrieves relevant dbt models, and returns the most useful project context.
+* Docker
+* Docker Compose
+* Git
+* An API key for at least one supported LLM provider
 
-# 
+### 1. Clone the Repository
 
-# \### Semantic Model Discovery
+Replace the example URL with the URL of this repository.
 
-# 
+```bash
+git clone https://github.com/YOUR_GITHUB_USERNAME/modelatlas-ai.git
+cd modelatlas-ai
+```
 
-# ModelAtlas AI uses embeddings and PostgreSQL with `pgvector` to identify models that are conceptually related to a question.
+### 2. Create the Environment File
 
-# 
+```bash
+cp .env.example .env
+```
 
-# This allows the platform to find useful models even when the user’s wording does not exactly match the model name or description.
+Open `.env` and configure the required variables.
 
-# 
+```bash
+${EDITOR:-vi} .env
+```
 
-# \### Model-Level Metadata
+### 3. Build and Start the Application
 
-# 
+```bash
+docker compose up --build -d
+```
 
-# The platform can expose information such as:
+### 4. Run Database Migrations
 
-# 
+```bash
+docker compose exec backend-django \
+  uv run python manage.py migrate
+```
 
-# \-   Model name
+### 5. Open the Application
 
-# &#x20;   
+After all containers become healthy, open:
 
-# \-   Project name
+| Service             | URL                   |
+| ------------------- | --------------------- |
+| Web application     | http://localhost:3000 |
+| Django API          | http://localhost:8000 |
+| Flower task monitor | http://localhost:5555 |
+| MCP server          | http://localhost:8080 |
 
-# &#x20;   
+Create an account through the web interface and complete the onboarding process.
 
-# \-   Database and schema
+---
 
-# &#x20;   
+## Environment Configuration
 
-# \-   Materialization type
+Only a few variables are required for a standard local deployment.
 
-# &#x20;   
+### Required Variables
 
-# \-   SQL definition
+```bash
+NEXTAUTH_SECRET=replace_with_a_secure_random_value
+NEXTAUTH_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
 
-# &#x20;   
+Generate a secure value for `NEXTAUTH_SECRET` with:
 
-# \-   Model description
+```bash
+openssl rand -base64 32
+```
 
-# &#x20;   
+### Common Optional Variables
 
-# \-   Columns
+| Variable                | Default                      | Purpose                                                           |
+| ----------------------- | ---------------------------- | ----------------------------------------------------------------- |
+| `INTERNAL_API_URL`      | `http://backend-django:8000` | Internal URL used by the frontend to communicate with the backend |
+| `ENVIRONMENT`           | `local`                      | Selects local, development, or production behavior                |
+| `APP_HOST`              | Not set                      | Adds an additional hostname to Django host and CORS configuration |
+| `DATABASE_URL`          | Generated by Docker Compose  | Connects the backend and workers to PostgreSQL                    |
+| `CELERY_BROKER_URL`     | `redis://redis:6379/0`       | Configures the Celery message broker                              |
+| `AWS_ACCESS_KEY_ID`     | Not set                      | AWS credential used when connecting to AWS services               |
+| `AWS_SECRET_ACCESS_KEY` | Not set                      | AWS secret credential                                             |
+| `AWS_DEFAULT_REGION`    | Not set                      | AWS region used by the application                                |
 
-# &#x20;   
+### PostgreSQL Defaults
 
-# \-   Tests
+```bash
+POSTGRES_DB=modelatlas
+POSTGRES_USER=user
+POSTGRES_PASSWORD=password
+POSTGRES_PORT=5432
+```
 
-# &#x20;   
+To use an external PostgreSQL database with the `pgvector` extension:
 
-# \-   Tags
+```bash
+EXTERNAL_POSTGRES_URL=postgresql://username:password@hostname:5432/database
+```
 
-# &#x20;   
+---
 
-# \-   Upstream dependencies
+## LLM Configuration
 
-# &#x20;   
+Provide credentials only for the providers you intend to use.
 
-# \-   Downstream dependencies
+```bash
+LLM_OPENAI_API_KEY=your_openai_api_key
+LLM_ANTHROPIC_API_KEY=your_anthropic_api_key
+LLM_GOOGLE_API_KEY=your_google_api_key
+```
 
-# &#x20;   
+Do not commit API keys or other secrets to GitHub.
 
-# \-   Source relationships
+The `.env` file should remain excluded through `.gitignore`.
 
-# &#x20;   
+---
 
-# \-   Project lineage
+## First-Time Setup
 
-# &#x20;   
+After starting the application:
 
-# 
+1. Open `http://localhost:3000`.
+2. Create a user account.
+3. Sign in to the dashboard.
+4. Create or select an organization.
+5. Connect a dbt project.
+6. Select the models that should be indexed.
+7. Configure the LLM provider.
+8. Configure the embedding provider.
+9. Start the project ingestion process.
+10. Wait for the models and embeddings to finish processing.
+11. Ask questions through the web chat.
 
-# \### dbt Project Summaries
+Background-task progress can be monitored through Flower:
 
-# 
+```text
+http://localhost:5555
+```
 
-# Users can retrieve high-level information about connected dbt projects, including:
+---
 
-# 
+## Connecting a dbt Project
 
-# \-   Number of models
+ModelAtlas AI supports multiple project-ingestion methods.
 
-# &#x20;   
+### dbt Cloud
 
-# \-   Available schemas
+For dbt Cloud, provide the requested project information and service token through the project onboarding interface.
 
-# &#x20;   
+### GitHub
 
-# \-   Model organization
+A dbt project stored in GitHub can be connected through the supported repository integration.
 
-# &#x20;   
+### Local Upload
 
-# \-   Materialization patterns
+A local dbt project can also be uploaded as a supported archive through the application.
 
-# &#x20;   
+After the project is connected, select which models should be available for:
 
-# \-   Project structure
+* Question answering
+* Embedding generation
+* Model retrieval
+* SQL verification
+* Project exploration
 
-# &#x20;   
+---
 
-# \-   Connected data assets
+## Example Questions
 
-# &#x20;   
+Once the project is indexed, users can ask questions such as:
 
-# 
+```text
+Which models calculate customer revenue?
+```
 
-# \### Web-Based Chat Interface
+```text
+Find models related to customer retention.
+```
 
-# 
+```text
+Show the SQL used in the customer_metrics model.
+```
 
-# The Next.js dashboard provides a browser-based interface for:
+```text
+Which sources feed the monthly_sales model?
+```
 
-# 
+```text
+What downstream models depend on stg_orders?
+```
 
-# \-   Managing organizations
+```text
+Summarize the structure of the marketing analytics project.
+```
 
-# &#x20;   
+```text
+Which models are materialized as incremental tables?
+```
 
-# \-   Connecting dbt projects
+```text
+Where is gross margin calculated?
+```
 
-# &#x20;   
+---
 
-# \-   Configuring integrations
+## Slack Integration
 
-# &#x20;   
+Slack can be configured through the application dashboard.
 
-# \-   Selecting language and embedding models
+### Setup Process
 
-# &#x20;   
+1. Open **Integrations**.
+2. Select **Slack**.
+3. Follow the displayed manifest instructions to create a Slack application.
+4. Configure the required permissions.
+5. Add the generated credentials:
 
-# \-   Asking questions
+   * Bot token
+   * Signing secret
+   * App token
+6. Install the Slack application in the selected workspace.
+7. Test the connection.
 
-# &#x20;   
+After setup, users can ask project-related questions from Slack.
 
-# \-   Reviewing generated responses
+Some additional integrations may remain experimental and should be tested before production use.
 
-# &#x20;   
+---
 
-# \-   Managing provider credentials
+## MCP Server
 
-# &#x20;   
+ModelAtlas AI includes a Model Context Protocol server for exposing selected dbt project functions to compatible LLM clients.
 
-# 
+The MCP server is designed for self-hosted deployments because each client requires access to a dedicated server instance.
 
-# \### Slack Integration
+### Available MCP Tools
 
-# 
+#### `list_dbt_models`
 
-# Teams can connect the application to Slack and ask dbt-related questions without leaving their workspace.
+Lists and filters dbt models using fields such as:
 
-# 
+* Project
+* Schema
+* Materialization
+* Model name
 
-# \### Model Context Protocol Support
+#### `search_dbt_models`
 
-# 
+Uses semantic search to locate models related to a natural-language query.
 
-# The included MCP server allows supported LLM clients to access selected dbt project capabilities through authenticated tools.
+#### `get_model_details`
 
-# 
+Returns detailed information for a selected model, including:
 
-# \### Asynchronous Processing
+* SQL
+* Description
+* Schema
+* Materialization
+* Metadata
+* Dependencies
+* Lineage
 
-# 
+#### `get_project_summary`
 
-# Celery workers process longer-running operations such as:
+Returns a high-level overview of a connected dbt project and its structure.
 
-# 
+---
 
-# \-   Project ingestion
+## MCP Configuration
 
-# &#x20;   
+Add the following values to `.env`:
 
-# \-   Metadata extraction
+```bash
+MCP_AUTHORIZATION_BASE_URL=http://localhost:8000
+DJANGO_BACKEND_URL=http://localhost:8000
+ALLOWED_ORIGINS=*
+```
 
-# &#x20;   
+For production environments, replace `*` with an explicit list of trusted origins.
 
-# \-   Embedding generation
+Start the full application stack:
 
-# &#x20;   
+```bash
+docker compose up -d
+```
 
-# \-   Knowledge-base updates
+Check the MCP server:
 
-# &#x20;   
+```bash
+curl http://localhost:8080/health
+```
 
-# \-   Background synchronization
+Test OAuth metadata discovery:
 
-# &#x20;   
+```bash
+curl http://localhost:8080/.well-known/oauth-authorization-server
+```
 
-# 
+View MCP server logs:
 
-# Redis is used as the default Celery message broker.
+```bash
+docker compose logs -f mcp-server
+```
 
-# 
+---
 
-# \----------
+## MCP Authentication Flow
 
-# 
+The MCP integration uses OAuth 2.0 with PKCE and organization-scoped access.
 
-# \## System Architecture
+```mermaid
+sequenceDiagram
+    participant Client as LLM Client
+    participant MCP as MCP Server
+    participant API as Django Backend
+    participant Browser as User Browser
 
-# 
+    Client->>MCP: Request OAuth metadata
+    MCP->>API: Retrieve OAuth configuration
+    API->>MCP: Return provider metadata
+    MCP->>Client: Return OAuth metadata
 
-# ```mermaid
+    Client->>MCP: Begin authorization with PKCE
+    MCP->>API: Forward authorization request
+    API->>Browser: Redirect user to login
+    Browser->>API: Authenticate user
+    API->>MCP: Return authorization code
+    MCP->>Client: Forward authorization code
 
-# flowchart LR
+    Client->>MCP: Exchange authorization code
+    MCP->>API: Validate request and exchange code
+    API->>MCP: Return access and refresh tokens
+    MCP->>Client: Return tokens
 
-# &#x20;   A\[dbt Project] --> B\[Project Ingestion]
+    Client->>MCP: Call tool with access token
+    MCP->>API: Validate token and retrieve user context
+    API->>MCP: Return organization-scoped information
+    MCP->>Client: Return tool result
+```
 
-# &#x20;   B --> C\[Metadata and Documentation Extraction]
+### Authentication Features
 
-# &#x20;   C --> D\[Django REST API]
+* OAuth 2.0 metadata discovery
+* PKCE-based authorization
+* JWT access tokens
+* Refresh tokens
+* Organization-scoped access
+* Token validation
+* Automatic token expiration
+* Client registration support
 
-# &#x20;   C --> E\[Embedding Generation]
+---
 
-# &#x20;   E --> F\[(PostgreSQL + pgvector)]
+## Example MCP Interactions
 
-# 
+### Discovering Models
 
-# &#x20;   G\[Next.js Web Application] --> D
+```text
+User:
+What dbt models are available?
 
-# &#x20;   H\[Slack Integration] --> D
+MCP tool:
+list_dbt_models
 
-# &#x20;   I\[MCP Client] --> J\[MCP Server]
+Result:
+Models are returned by project, schema, and materialization.
+```
 
-# &#x20;   J --> D
+### Semantic Model Search
 
-# 
+```text
+User:
+Find models related to customer revenue.
 
-# &#x20;   D --> F
+MCP tool:
+search_dbt_models
 
-# &#x20;   D --> K\[LLM Provider]
+Result:
+The tool returns models ranked by semantic similarity.
+```
 
-# &#x20;   D --> L\[Celery Workers]
+### Retrieving Model Details
 
-# &#x20;   L --> M\[Redis]
+```text
+User:
+Show me the SQL and dependencies for customer_revenue_monthly.
 
-# &#x20;   L --> F
+MCP tool:
+get_model_details
 
-# 
+Result:
+The tool returns model metadata, SQL, materialization, and lineage.
+```
 
-# &#x20;   K --> D
+### Summarizing a Project
 
-# &#x20;   D --> G
+```text
+User:
+Summarize the connected marketing analytics project.
 
-# &#x20;   D --> H
+MCP tool:
+get_project_summary
 
-# &#x20;   D --> J
+Result:
+The tool returns the project's models, schemas, and overall structure.
+```
 
-# 
+---
 
-# ```
+## Managing the Application
 
-# 
+### View Running Containers
 
-# \### Request Flow
+```bash
+docker compose ps
+```
 
-# 
+### Open a Backend Shell
 
-# 1\.  A dbt project is connected through dbt Cloud, GitHub, or a local upload.
+```bash
+docker compose exec backend-django bash
+```
 
-# &#x20;   
+### Open a Frontend Shell
 
-# 2\.  The backend extracts models, SQL, metadata, descriptions, and lineage.
+```bash
+docker compose exec frontend-nextjs sh
+```
 
-# &#x20;   
+### Follow Backend Logs
 
-# 3\.  Relevant project content is converted into vector embeddings.
+```bash
+docker compose logs -f backend-django
+```
 
-# &#x20;   
+### Follow Frontend Logs
 
-# 4\.  Embeddings and structured metadata are stored in PostgreSQL.
+```bash
+docker compose logs -f frontend-nextjs
+```
 
-# &#x20;   
+### Follow Worker Logs
 
-# 5\.  A user asks a question through the dashboard, Slack, or an MCP client.
+```bash
+docker compose logs -f celery-worker
+```
 
-# &#x20;   
+### Follow MCP Logs
 
-# 6\.  The question is converted into an embedding.
+```bash
+docker compose logs -f mcp-server
+```
 
-# &#x20;   
+### Stop the Application
 
-# 7\.  `pgvector` retrieves semantically relevant models.
+```bash
+docker compose down
+```
 
-# &#x20;   
+This keeps the existing Docker volumes.
 
-# 8\.  The backend gathers structured model details.
+### Remove the Application and Stored Volumes
 
-# &#x20;   
+```bash
+docker compose down -v
+```
 
-# 9\.  The configured LLM uses the retrieved context to produce a response.
+This deletes locally stored PostgreSQL data and should be used carefully.
 
-# &#x20;   
+---
 
-# 10\.  The result is returned to the user through the original interface.
+## Local Development
 
-# &#x20;   
+Docker Compose is the recommended setup.
 
-# 
+For development without Docker, install:
 
-# \----------
+* Python 3.10+
+* Node.js 18+
+* PostgreSQL 16+
+* `pgvector`
+* `uv`
+* `pnpm`
+* Redis
 
-# 
+### Backend Setup
 
-# \## Technology Stack
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install -e backend_django/
+```
 
-# 
+Start the backend:
 
-# \### Backend
+```bash
+cd backend_django
+uv run python manage.py migrate
+uv run python manage.py runserver 0.0.0.0:8000
+```
 
-# 
+### Frontend Setup
 
-# \-   Python 3.10+
+Install frontend packages:
 
-# &#x20;   
+```bash
+pnpm install --filter frontend_nextjs
+```
 
-# \-   Django
+Start the frontend:
 
-# &#x20;   
+```bash
+cd frontend_nextjs
+pnpm dev
+```
 
-# \-   Django REST Framework
+Export the same environment variables used in the Docker-based setup.
 
-# &#x20;   
+---
 
-# \-   Celery
+## Security Considerations
 
-# &#x20;   
+Before using the application in a production environment:
 
-# \-   Redis
+* Use HTTPS for all public endpoints.
+* Replace development secrets.
+* Restrict Django allowed hosts.
+* Restrict CORS origins.
+* Store API keys in a secure secret manager.
+* Avoid committing `.env` files.
+* Use a production-grade PostgreSQL configuration.
+* Restrict database-network access.
+* Apply organization-level authorization.
+* Rotate access and refresh tokens.
+* Monitor authentication failures.
+* Review MCP tool permissions.
+* Validate uploaded dbt project files.
+* Review logs for accidental sensitive-data exposure.
+* Apply rate limits to externally accessible endpoints.
+* Back up PostgreSQL data.
+* Test recovery procedures.
 
-# &#x20;   
+---
 
-# \-   PostgreSQL
+## Troubleshooting
 
-# &#x20;   
+### Containers Do Not Start
 
-# \-   `pgvector`
+Inspect container status:
 
-# &#x20;   
+```bash
+docker compose ps
+```
 
-# \-   `uv`
+Review logs:
 
-# &#x20;   
+```bash
+docker compose logs
+```
 
-# 
+### Database Migration Errors
 
-# \### Frontend
+Confirm that PostgreSQL is healthy:
 
-# 
+```bash
+docker compose ps postgres
+```
 
-# \-   Next.js
+Run migrations again:
 
-# &#x20;   
+```bash
+docker compose exec backend-django \
+  uv run python manage.py migrate
+```
 
-# \-   React
+### No dbt Models Are Returned
 
-# &#x20;   
+Confirm that:
 
-# \-   TypeScript
+* A dbt project is connected.
+* The project ingestion completed successfully.
+* Models were selected for indexing.
+* Background workers are running.
+* Embeddings were generated.
+* The user has access to the correct organization.
 
-# &#x20;   
+Inspect worker logs:
 
-# \-   NextAuth
+```bash
+docker compose logs -f celery-worker
+```
 
-# &#x20;   
+### LLM Requests Fail
 
-# \-   Modern component-based user interface
+Check that:
 
-# &#x20;   
+* The correct provider key is configured.
+* The API key is active.
+* The selected model is available.
+* The account has sufficient provider quota.
+* The backend container received the environment variable.
 
-# 
+### MCP Authentication Fails
 
-# \### AI and Retrieval
+Check:
 
-# 
+* The Django backend is accessible.
+* The MCP authorization URL is correct.
+* The user is logged in.
+* OAuth metadata is available.
+* Redirect URLs match the client configuration.
+* The requested organization is accessible.
 
-# \-   Large language model APIs
+### Port Conflict
 
-# &#x20;   
+Update the relevant port mapping in `docker-compose.yml` and modify the associated environment URLs.
 
-# \-   Text embeddings
+---
 
-# &#x20;   
+## Current Limitations
 
-# \-   Retrieval-augmented generation
+* The quality of answers depends on the quality of dbt documentation.
+* Incomplete model descriptions may reduce semantic-search accuracy.
+* LLM responses may still require human verification.
+* Provider costs depend on the selected language and embedding models.
+* Large projects may require additional processing time and storage.
+* MCP functionality is intended primarily for self-hosted deployments.
+* Each MCP client may require a dedicated server configuration.
+* Experimental integrations may change.
+* Generated explanations should not replace direct validation of production SQL.
+* Access-token and refresh-token behavior should be reviewed before production deployment.
 
-# &#x20;   
+---
 
-# \-   Vector similarity search
+## What I Learned
 
-# &#x20;   
+Completing this implementation helped me understand how several modern data and AI components work together:
 
-# \-   Configurable LLM providers
+* Extracting structured information from dbt project metadata
+* Creating embeddings from analytics documentation
+* Storing and searching vectors with PostgreSQL and `pgvector`
+* Combining semantic retrieval with structured database queries
+* Building retrieval-augmented generation workflows
+* Connecting a Django REST backend with a Next.js frontend
+* Processing ingestion and embedding tasks asynchronously with Celery
+* Using Redis as a message broker
+* Running a multi-service application with Docker Compose
+* Connecting AI applications to enterprise analytics metadata
+* Exposing analytics capabilities through MCP tools
+* Implementing OAuth-based access for external AI clients
+* Understanding the importance of organization-scoped access
+* Managing LLM and embedding-provider configuration
 
-# &#x20;   
+---
 
-# \-   Configurable embedding models
+## Potential Future Enhancements
 
-# &#x20;   
+Possible extensions include:
 
-# 
+* Evaluating semantic-search precision using a labeled question set
+* Adding model-ranking metrics such as precision at K and recall at K
+* Creating automated tests for generated answers
+* Adding user feedback to improve model retrieval
+* Detecting undocumented dbt models
+* Identifying duplicate or overlapping business metrics
+* Adding column-level semantic search
+* Expanding model-lineage visualization
+* Introducing role-based permissions for MCP tools
+* Adding query and response audit logs
+* Measuring response latency and token usage
+* Supporting local embedding models
+* Supporting local language models
+* Adding deployment templates for AWS, Azure, or GCP
+* Creating monitoring dashboards for ingestion failures
+* Adding automated synchronization with dbt Cloud
+* Detecting stale documentation and broken model references
 
-# \### Analytics Metadata
+---
 
-# 
-
-# \-   dbt project models
-
-# &#x20;   
-
-# \-   dbt documentation
-
-# &#x20;   
-
-# \-   Model SQL
-
-# &#x20;   
-
-# \-   Source definitions
-
-# &#x20;   
-
-# \-   Model dependencies
-
-# &#x20;   
-
-# \-   Lineage metadata
-
-# &#x20;   
-
-# \-   Schema and materialization information
-
-# &#x20;   
-
-# 
-
-# \### Integrations
-
-# 
-
-# \-   dbt Cloud
-
-# &#x20;   
-
-# \-   GitHub
-
-# &#x20;   
-
-# \-   Slack
-
-# &#x20;   
-
-# \-   Model Context Protocol
-
-# &#x20;   
-
-# \-   AWS Parameter Store
-
-# &#x20;   
-
-# \-   LocalStack
-
-# &#x20;   
-
-# 
-
-# \### Infrastructure
-
-# 
-
-# \-   Docker
-
-# &#x20;   
-
-# \-   Docker Compose
-
-# &#x20;   
-
-# \-   PostgreSQL container
-
-# &#x20;   
-
-# \-   Redis container
-
-# &#x20;   
-
-# \-   Django backend container
-
-# &#x20;   
-
-# \-   Next.js frontend container
-
-# &#x20;   
-
-# \-   Celery worker
-
-# &#x20;   
-
-# \-   Flower task-monitoring interface
-
-# &#x20;   
-
-# \-   MCP server
-
-# &#x20;   
-
-# 
-
-# \----------
-
-# 
-
-# \## Application Screens
-
-# 
-
-# \### Analytics Assistant
-
-# 
-
-# !\[Dashboard](https://chatgpt.com/c/docs/dashboard.png)
-
-# 
-
-# The dashboard provides a conversational interface for exploring connected dbt projects and retrieving model information.
-
-# 
-
-# \### Integrations
-
-# 
-
-# !\[Integrations](https://chatgpt.com/c/docs/integrations.png)
-
-# 
-
-# Projects and communication tools can be configured through the integrations interface.
-
-# 
-
-# \### Application Settings
-
-# 
-
-# !\[Settings](https://chatgpt.com/c/docs/settings.png)
-
-# 
-
-# Users can configure LLM providers, embedding models, credentials, and other application settings.
-
-# 
-
-# \----------
-
-# 
-
-# \## Quick Start
-
-# 
-
-# \### Prerequisites
-
-# 
-
-# Install the following before starting:
-
-# 
-
-# \-   Docker
-
-# &#x20;   
-
-# \-   Docker Compose
-
-# &#x20;   
-
-# \-   Git
-
-# &#x20;   
-
-# \-   An API key for at least one supported LLM provider
-
-# &#x20;   
-
-# 
-
-# \### 1. Clone the Repository
-
-# 
-
-# Replace the example URL with the URL of this repository.
-
-# 
-
-# ```bash
-
-# git clone https://github.com/YOUR\_GITHUB\_USERNAME/modelatlas-ai.git
-
-# cd modelatlas-ai
-
-# 
-
-# ```
-
-# 
-
-# \### 2. Create the Environment File
-
-# 
-
-# ```bash
-
-# cp .env.example .env
-
-# 
-
-# ```
-
-# 
-
-# Open `.env` and configure the required variables.
-
-# 
-
-# ```bash
-
-# ${EDITOR:-vi} .env
-
-# 
-
-# ```
-
-# 
-
-# \### 3. Build and Start the Application
-
-# 
-
-# ```bash
-
-# docker compose up --build -d
-
-# 
-
-# ```
-
-# 
-
-# \### 4. Run Database Migrations
-
-# 
-
-# ```bash
-
-# docker compose exec backend-django \\
-
-# &#x20; uv run python manage.py migrate
-
-# 
-
-# ```
-
-# 
-
-# \### 5. Open the Application
-
-# 
-
-# After all containers become healthy, open:
-
-# 
-
-# Service
-
-# 
-
-# URL
-
-# 
-
-# Web application
-
-# 
-
-# \[http://localhost:3000](http://localhost:3000/)
-
-# 
-
-# Django API
-
-# 
-
-# \[http://localhost:8000](http://localhost:8000/)
-
-# 
-
-# Flower task monitor
-
-# 
-
-# \[http://localhost:5555](http://localhost:5555/)
-
-# 
-
-# MCP server
-
-# 
-
-# \[http://localhost:8080](http://localhost:8080/)
-
-# 
-
-# Create an account through the web interface and complete the onboarding process.
-
-# 
-
-# \----------
-
-# 
-
-# \## Environment Configuration
-
-# 
-
-# Only a few variables are required for a standard local deployment.
-
-# 
-
-# \### Required Variables
-
-# 
-
-# ```bash
-
-# NEXTAUTH\_SECRET=replace\_with\_a\_secure\_random\_value
-
-# NEXTAUTH\_URL=http://localhost:3000
-
-# NEXT\_PUBLIC\_API\_URL=http://localhost:8000
-
-# 
-
-# ```
-
-# 
-
-# Generate a secure value for `NEXTAUTH\_SECRET` with:
-
-# 
-
-# ```bash
-
-# openssl rand -base64 32
-
-# 
-
-# ```
-
-# 
-
-# \### Common Optional Variables
-
-# 
-
-# Variable
-
-# 
-
-# Default
-
-# 
-
-# Purpose
-
-# 
-
-# `INTERNAL\_API\_URL`
-
-# 
-
-# `http://backend-django:8000`
-
-# 
-
-# Internal URL used by the frontend to communicate with the backend
-
-# 
-
-# `ENVIRONMENT`
-
-# 
-
-# `local`
-
-# 
-
-# Selects local, development, or production behavior
-
-# 
-
-# `APP\_HOST`
-
-# 
-
-# Not set
-
-# 
-
-# Adds an additional hostname to Django host and CORS configuration
-
-# 
-
-# `DATABASE\_URL`
-
-# 
-
-# Generated by Docker Compose
-
-# 
-
-# Connects the backend and workers to PostgreSQL
-
-# 
-
-# `CELERY\_BROKER\_URL`
-
-# 
-
-# `redis://redis:6379/0`
-
-# 
-
-# Configures the Celery message broker
-
-# 
-
-# `AWS\_ACCESS\_KEY\_ID`
-
-# 
-
-# Not set
-
-# 
-
-# AWS credential used when connecting to AWS services
-
-# 
-
-# `AWS\_SECRET\_ACCESS\_KEY`
-
-# 
-
-# Not set
-
-# 
-
-# AWS secret credential
-
-# 
-
-# `AWS\_DEFAULT\_REGION`
-
-# 
-
-# Not set
-
-# 
-
-# AWS region used by the application
-
-# 
-
-# \### PostgreSQL Defaults
-
-# 
-
-# ```bash
-
-# POSTGRES\_DB=modelatlas
-
-# POSTGRES\_USER=user
-
-# POSTGRES\_PASSWORD=password
-
-# POSTGRES\_PORT=5432
-
-# 
-
-# ```
-
-# 
-
-# To use an external PostgreSQL database with the `pgvector` extension:
-
-# 
-
-# ```bash
-
-# EXTERNAL\_POSTGRES\_URL=postgresql://username:password@hostname:5432/database
-
-# 
-
-# ```
-
-# 
-
-# \----------
-
-# 
-
-# \## LLM Configuration
-
-# 
-
-# Provide credentials only for the providers you intend to use.
-
-# 
-
-# ```bash
-
-# LLM\_OPENAI\_API\_KEY=your\_openai\_api\_key
-
-# LLM\_ANTHROPIC\_API\_KEY=your\_anthropic\_api\_key
-
-# LLM\_GOOGLE\_API\_KEY=your\_google\_api\_key
-
-# 
-
-# ```
-
-# 
-
-# Do not commit API keys or other secrets to GitHub.
-
-# 
-
-# The `.env` file should remain excluded through `.gitignore`.
-
-# 
-
-# \----------
-
-# 
-
-# \## First-Time Setup
-
-# 
-
-# After starting the application:
-
-# 
-
-# 1\.  Open `http://localhost:3000`.
-
-# &#x20;   
-
-# 2\.  Create a user account.
-
-# &#x20;   
-
-# 3\.  Sign in to the dashboard.
-
-# &#x20;   
-
-# 4\.  Create or select an organization.
-
-# &#x20;   
-
-# 5\.  Connect a dbt project.
-
-# &#x20;   
-
-# 6\.  Select the models that should be indexed.
-
-# &#x20;   
-
-# 7\.  Configure the LLM provider.
-
-# &#x20;   
-
-# 8\.  Configure the embedding provider.
-
-# &#x20;   
-
-# 9\.  Start the project ingestion process.
-
-# &#x20;   
-
-# 10\.  Wait for the models and embeddings to finish processing.
-
-# &#x20;   
-
-# 11\.  Ask questions through the web chat.
-
-# &#x20;   
-
-# 
-
-# Background-task progress can be monitored through Flower:
-
-# 
-
-# ```text
-
-# http://localhost:5555
-
-# 
-
-# ```
-
-# 
-
-# \----------
-
-# 
-
-# \## Connecting a dbt Project
-
-# 
-
-# ModelAtlas AI supports multiple project-ingestion methods.
-
-# 
-
-# \### dbt Cloud
-
-# 
-
-# For dbt Cloud, provide the requested project information and service token through the project onboarding interface.
-
-# 
-
-# \### GitHub
-
-# 
-
-# A dbt project stored in GitHub can be connected through the supported repository integration.
-
-# 
-
-# \### Local Upload
-
-# 
-
-# A local dbt project can also be uploaded as a supported archive through the application.
-
-# 
-
-# After the project is connected, select which models should be available for:
-
-# 
-
-# \-   Question answering
-
-# &#x20;   
-
-# \-   Embedding generation
-
-# &#x20;   
-
-# \-   Model retrieval
-
-# &#x20;   
-
-# \-   SQL verification
-
-# &#x20;   
-
-# \-   Project exploration
-
-# &#x20;   
-
-# 
-
-# \----------
-
-# 
-
-# \## Example Questions
-
-# 
-
-# Once the project is indexed, users can ask questions such as:
-
-# 
-
-# ```text
-
-# Which models calculate customer revenue?
-
-# 
-
-# ```
-
-# 
-
-# ```text
-
-# Find models related to customer retention.
-
-# 
-
-# ```
-
-# 
-
-# ```text
-
-# Show the SQL used in the customer\_metrics model.
-
-# 
-
-# ```
-
-# 
-
-# ```text
-
-# Which sources feed the monthly\_sales model?
-
-# 
-
-# ```
-
-# 
-
-# ```text
-
-# What downstream models depend on stg\_orders?
-
-# 
-
-# ```
-
-# 
-
-# ```text
-
-# Summarize the structure of the marketing analytics project.
-
-# 
-
-# ```
-
-# 
-
-# ```text
-
-# Which models are materialized as incremental tables?
-
-# 
-
-# ```
-
-# 
-
-# ```text
-
-# Where is gross margin calculated?
-
-# 
-
-# ```
-
-# 
-
-# \----------
-
-# 
-
-# \## Slack Integration
-
-# 
-
-# Slack can be configured through the application dashboard.
-
-# 
-
-# \### Setup Process
-
-# 
-
-# 1\.  Open \*\*Integrations\*\*.
-
-# &#x20;   
-
-# 2\.  Select \*\*Slack\*\*.
-
-# &#x20;   
-
-# 3\.  Follow the displayed manifest instructions to create a Slack application.
-
-# &#x20;   
-
-# 4\.  Configure the required permissions.
-
-# &#x20;   
-
-# 5\.  Add the generated credentials:
-
-# &#x20;   
-
-# &#x20;   -   Bot token
-
-# &#x20;       
-
-# &#x20;   -   Signing secret
-
-# &#x20;       
-
-# &#x20;   -   App token
-
-# &#x20;       
-
-# 6\.  Install the Slack application in the selected workspace.
-
-# &#x20;   
-
-# 7\.  Test the connection.
-
-# &#x20;   
-
-# 
-
-# After setup, users can ask project-related questions from Slack.
-
-# 
-
-# Some additional integrations may remain experimental and should be tested before production use.
-
-# 
-
-# \----------
-
-# 
-
-# \## MCP Server
-
-# 
-
-# ModelAtlas AI includes a Model Context Protocol server for exposing selected dbt project functions to compatible LLM clients.
-
-# 
-
-# The MCP server is designed for self-hosted deployments because each client requires access to a dedicated server instance.
-
-# 
-
-# \### Available MCP Tools
-
-# 
-
-# \#### `list\_dbt\_models`
-
-# 
-
-# Lists and filters dbt models using fields such as:
-
-# 
-
-# \-   Project
-
-# &#x20;   
-
-# \-   Schema
-
-# &#x20;   
-
-# \-   Materialization
-
-# &#x20;   
-
-# \-   Model name
-
-# &#x20;   
-
-# 
-
-# \#### `search\_dbt\_models`
-
-# 
-
-# Uses semantic search to locate models related to a natural-language query.
-
-# 
-
-# \#### `get\_model\_details`
-
-# 
-
-# Returns detailed information for a selected model, including:
-
-# 
-
-# \-   SQL
-
-# &#x20;   
-
-# \-   Description
-
-# &#x20;   
-
-# \-   Schema
-
-# &#x20;   
-
-# \-   Materialization
-
-# &#x20;   
-
-# \-   Metadata
-
-# &#x20;   
-
-# \-   Dependencies
-
-# &#x20;   
-
-# \-   Lineage
-
-# &#x20;   
-
-# 
-
-# \#### `get\_project\_summary`
-
-# 
-
-# Returns a high-level overview of a connected dbt project and its structure.
-
-# 
-
-# \----------
-
-# 
-
-# \## MCP Configuration
-
-# 
-
-# Add the following values to `.env`:
-
-# 
-
-# ```bash
-
-# MCP\_AUTHORIZATION\_BASE\_URL=http://localhost:8000
-
-# DJANGO\_BACKEND\_URL=http://localhost:8000
-
-# ALLOWED\_ORIGINS=\*
-
-# 
-
-# ```
-
-# 
-
-# For production environments, replace `\*` with an explicit list of trusted origins.
-
-# 
-
-# Start the full application stack:
-
-# 
-
-# ```bash
-
-# docker compose up -d
-
-# 
-
-# ```
-
-# 
-
-# Check the MCP server:
-
-# 
-
-# ```bash
-
-# curl http://localhost:8080/health
-
-# 
-
-# ```
-
-# 
-
-# Test OAuth metadata discovery:
-
-# 
-
-# ```bash
-
-# curl http://localhost:8080/.well-known/oauth-authorization-server
-
-# 
-
-# ```
-
-# 
-
-# View MCP server logs:
-
-# 
-
-# ```bash
-
-# docker compose logs -f mcp-server
-
-# 
-
-# ```
-
-# 
-
-# \----------
-
-# 
-
-# \## MCP Authentication Flow
-
-# 
-
-# The MCP integration uses OAuth 2.0 with PKCE and organization-scoped access.
-
-# 
-
-# ```mermaid
-
-# sequenceDiagram
-
-# &#x20;   participant Client as LLM Client
-
-# &#x20;   participant MCP as MCP Server
-
-# &#x20;   participant API as Django Backend
-
-# &#x20;   participant Browser as User Browser
-
-# 
-
-# &#x20;   Client->>MCP: Request OAuth metadata
-
-# &#x20;   MCP->>API: Retrieve OAuth configuration
-
-# &#x20;   API->>MCP: Return provider metadata
-
-# &#x20;   MCP->>Client: Return OAuth metadata
-
-# 
-
-# &#x20;   Client->>MCP: Begin authorization with PKCE
-
-# &#x20;   MCP->>API: Forward authorization request
-
-# &#x20;   API->>Browser: Redirect user to login
-
-# &#x20;   Browser->>API: Authenticate user
-
-# &#x20;   API->>MCP: Return authorization code
-
-# &#x20;   MCP->>Client: Forward authorization code
-
-# 
-
-# &#x20;   Client->>MCP: Exchange authorization code
-
-# &#x20;   MCP->>API: Validate request and exchange code
-
-# &#x20;   API->>MCP: Return access and refresh tokens
-
-# &#x20;   MCP->>Client: Return tokens
-
-# 
-
-# &#x20;   Client->>MCP: Call tool with access token
-
-# &#x20;   MCP->>API: Validate token and retrieve user context
-
-# &#x20;   API->>MCP: Return organization-scoped information
-
-# &#x20;   MCP->>Client: Return tool result
-
-# 
-
-# ```
-
-# 
-
-# \### Authentication Features
-
-# 
-
-# \-   OAuth 2.0 metadata discovery
-
-# &#x20;   
-
-# \-   PKCE-based authorization
-
-# &#x20;   
-
-# \-   JWT access tokens
-
-# &#x20;   
-
-# \-   Refresh tokens
-
-# &#x20;   
-
-# \-   Organization-scoped access
-
-# &#x20;   
-
-# \-   Token validation
-
-# &#x20;   
-
-# \-   Automatic token expiration
-
-# &#x20;   
-
-# \-   Client registration support
-
-# &#x20;   
-
-# 
-
-# \----------
-
-# 
-
-# \## Example MCP Interactions
-
-# 
-
-# \### Discovering Models
-
-# 
-
-# ```text
-
-# User:
-
-# What dbt models are available?
-
-# 
-
-# MCP tool:
-
-# list\_dbt\_models
-
-# 
-
-# Result:
-
-# Models are returned by project, schema, and materialization.
-
-# 
-
-# ```
-
-# 
-
-# \### Semantic Model Search
-
-# 
-
-# ```text
-
-# User:
-
-# Find models related to customer revenue.
-
-# 
-
-# MCP tool:
-
-# search\_dbt\_models
-
-# 
-
-# Result:
-
-# The tool returns models ranked by semantic similarity.
-
-# 
-
-# ```
-
-# 
-
-# \### Retrieving Model Details
-
-# 
-
-# ```text
-
-# User:
-
-# Show me the SQL and dependencies for customer\_revenue\_monthly.
-
-# 
-
-# MCP tool:
-
-# get\_model\_details
-
-# 
-
-# Result:
-
-# The tool returns model metadata, SQL, materialization, and lineage.
-
-# 
-
-# ```
-
-# 
-
-# \### Summarizing a Project
-
-# 
-
-# ```text
-
-# User:
-
-# Summarize the connected marketing analytics project.
-
-# 
-
-# MCP tool:
-
-# get\_project\_summary
-
-# 
-
-# Result:
-
-# The tool returns the project's models, schemas, and overall structure.
-
-# 
-
-# ```
-
-# 
-
-# \----------
-
-# 
-
-# \## Managing the Application
-
-# 
-
-# \### View Running Containers
-
-# 
-
-# ```bash
-
-# docker compose ps
-
-# 
-
-# ```
-
-# 
-
-# \### Open a Backend Shell
-
-# 
-
-# ```bash
-
-# docker compose exec backend-django bash
-
-# 
-
-# ```
-
-# 
-
-# \### Open a Frontend Shell
-
-# 
-
-# ```bash
-
-# docker compose exec frontend-nextjs sh
-
-# 
-
-# ```
-
-# 
-
-# \### Follow Backend Logs
-
-# 
-
-# ```bash
-
-# docker compose logs -f backend-django
-
-# 
-
-# ```
-
-# 
-
-# \### Follow Frontend Logs
-
-# 
-
-# ```bash
-
-# docker compose logs -f frontend-nextjs
-
-# 
-
-# ```
-
-# 
-
-# \### Follow Worker Logs
-
-# 
-
-# ```bash
-
-# docker compose logs -f celery-worker
-
-# 
-
-# ```
-
-# 
-
-# \### Follow MCP Logs
-
-# 
-
-# ```bash
-
-# docker compose logs -f mcp-server
-
-# 
-
-# ```
-
-# 
-
-# \### Stop the Application
-
-# 
-
-# ```bash
-
-# docker compose down
-
-# 
-
-# ```
-
-# 
-
-# This keeps the existing Docker volumes.
-
-# 
-
-# \### Remove the Application and Stored Volumes
-
-# 
-
-# ```bash
-
-# docker compose down -v
-
-# 
-
-# ```
-
-# 
-
-# This deletes locally stored PostgreSQL data and should be used carefully.
-
-# 
-
-# \----------
-
-# 
-
-# \## Local Development
-
-# 
-
-# Docker Compose is the recommended setup.
-
-# 
-
-# For development without Docker, install:
-
-# 
-
-# \-   Python 3.10+
-
-# &#x20;   
-
-# \-   Node.js 18+
-
-# &#x20;   
-
-# \-   PostgreSQL 16+
-
-# &#x20;   
-
-# \-   `pgvector`
-
-# &#x20;   
-
-# \-   `uv`
-
-# &#x20;   
-
-# \-   `pnpm`
-
-# &#x20;   
-
-# \-   Redis
-
-# &#x20;   
-
-# 
-
-# \### Backend Setup
-
-# 
-
-# ```bash
-
-# uv venv
-
-# source .venv/bin/activate
-
-# uv pip install -e backend\_django/
-
-# 
-
-# ```
-
-# 
-
-# Start the backend:
-
-# 
-
-# ```bash
-
-# cd backend\_django
-
-# uv run python manage.py migrate
-
-# uv run python manage.py runserver 0.0.0.0:8000
-
-# 
-
-# ```
-
-# 
-
-# \### Frontend Setup
-
-# 
-
-# Install frontend packages:
-
-# 
-
-# ```bash
-
-# pnpm install --filter frontend\_nextjs
-
-# 
-
-# ```
-
-# 
-
-# Start the frontend:
-
-# 
-
-# ```bash
-
-# cd frontend\_nextjs
-
-# pnpm dev
-
-# 
-
-# ```
-
-# 
-
-# Export the same environment variables used in the Docker-based setup.
-
-# 
-
-# \----------
-
-# 
-
-# \## Security Considerations
-
-# 
-
-# Before using the application in a production environment:
-
-# 
-
-# \-   Use HTTPS for all public endpoints.
-
-# &#x20;   
-
-# \-   Replace development secrets.
-
-# &#x20;   
-
-# \-   Restrict Django allowed hosts.
-
-# &#x20;   
-
-# \-   Restrict CORS origins.
-
-# &#x20;   
-
-# \-   Store API keys in a secure secret manager.
-
-# &#x20;   
-
-# \-   Avoid committing `.env` files.
-
-# &#x20;   
-
-# \-   Use a production-grade PostgreSQL configuration.
-
-# &#x20;   
-
-# \-   Restrict database-network access.
-
-# &#x20;   
-
-# \-   Apply organization-level authorization.
-
-# &#x20;   
-
-# \-   Rotate access and refresh tokens.
-
-# &#x20;   
-
-# \-   Monitor authentication failures.
-
-# &#x20;   
-
-# \-   Review MCP tool permissions.
-
-# &#x20;   
-
-# \-   Validate uploaded dbt project files.
-
-# &#x20;   
-
-# \-   Review logs for accidental sensitive-data exposure.
-
-# &#x20;   
-
-# \-   Apply rate limits to externally accessible endpoints.
-
-# &#x20;   
-
-# \-   Back up PostgreSQL data.
-
-# &#x20;   
-
-# \-   Test recovery procedures.
-
-# &#x20;   
-
-# 
-
-# \----------
-
-# 
-
-# \## Troubleshooting
-
-# 
-
-# \### Containers Do Not Start
-
-# 
-
-# Inspect container status:
-
-# 
-
-# ```bash
-
-# docker compose ps
-
-# 
-
-# ```
-
-# 
-
-# Review logs:
-
-# 
-
-# ```bash
-
-# docker compose logs
-
-# 
-
-# ```
-
-# 
-
-# \### Database Migration Errors
-
-# 
-
-# Confirm that PostgreSQL is healthy:
-
-# 
-
-# ```bash
-
-# docker compose ps postgres
-
-# 
-
-# ```
-
-# 
-
-# Run migrations again:
-
-# 
-
-# ```bash
-
-# docker compose exec backend-django \\
-
-# &#x20; uv run python manage.py migrate
-
-# 
-
-# ```
-
-# 
-
-# \### No dbt Models Are Returned
-
-# 
-
-# Confirm that:
-
-# 
-
-# \-   A dbt project is connected.
-
-# &#x20;   
-
-# \-   The project ingestion completed successfully.
-
-# &#x20;   
-
-# \-   Models were selected for indexing.
-
-# &#x20;   
-
-# \-   Background workers are running.
-
-# &#x20;   
-
-# \-   Embeddings were generated.
-
-# &#x20;   
-
-# \-   The user has access to the correct organization.
-
-# &#x20;   
-
-# 
-
-# Inspect worker logs:
-
-# 
-
-# ```bash
-
-# docker compose logs -f celery-worker
-
-# 
-
-# ```
-
-# 
-
-# \### LLM Requests Fail
-
-# 
-
-# Check that:
-
-# 
-
-# \-   The correct provider key is configured.
-
-# &#x20;   
-
-# \-   The API key is active.
-
-# &#x20;   
-
-# \-   The selected model is available.
-
-# &#x20;   
-
-# \-   The account has sufficient provider quota.
-
-# &#x20;   
-
-# \-   The backend container received the environment variable.
-
-# &#x20;   
-
-# 
-
-# \### MCP Authentication Fails
-
-# 
-
-# Check:
-
-# 
-
-# \-   The Django backend is accessible.
-
-# &#x20;   
-
-# \-   The MCP authorization URL is correct.
-
-# &#x20;   
-
-# \-   The user is logged in.
-
-# &#x20;   
-
-# \-   OAuth metadata is available.
-
-# &#x20;   
-
-# \-   Redirect URLs match the client configuration.
-
-# &#x20;   
-
-# \-   The requested organization is accessible.
-
-# &#x20;   
-
-# 
-
-# \### Port Conflict
-
-# 
-
-# Update the relevant port mapping in `docker-compose.yml` and modify the associated environment URLs.
-
-# 
-
-# \----------
-
-# 
-
-# \## Current Limitations
-
-# 
-
-# \-   The quality of answers depends on the quality of dbt documentation.
-
-# &#x20;   
-
-# \-   Incomplete model descriptions may reduce semantic-search accuracy.
-
-# &#x20;   
-
-# \-   LLM responses may still require human verification.
-
-# &#x20;   
-
-# \-   Provider costs depend on the selected language and embedding models.
-
-# &#x20;   
-
-# \-   Large projects may require additional processing time and storage.
-
-# &#x20;   
-
-# \-   MCP functionality is intended primarily for self-hosted deployments.
-
-# &#x20;   
-
-# \-   Each MCP client may require a dedicated server configuration.
-
-# &#x20;   
-
-# \-   Experimental integrations may change.
-
-# &#x20;   
-
-# \-   Generated explanations should not replace direct validation of production SQL.
-
-# &#x20;   
-
-# \-   Access-token and refresh-token behavior should be reviewed before production deployment.
-
-# &#x20;   
-
-# 
-
-# \----------
-
-# 
-
-# \## What I Learned
-
-# 
-
-# Completing this implementation helped me understand how several modern data and AI components work together:
-
-# 
-
-# \-   Extracting structured information from dbt project metadata
-
-# &#x20;   
-
-# \-   Creating embeddings from analytics documentation
-
-# &#x20;   
-
-# \-   Storing and searching vectors with PostgreSQL and `pgvector`
-
-# &#x20;   
-
-# \-   Combining semantic retrieval with structured database queries
-
-# &#x20;   
-
-# \-   Building retrieval-augmented generation workflows
-
-# &#x20;   
-
-# \-   Connecting a Django REST backend with a Next.js frontend
-
-# &#x20;   
-
-# \-   Processing ingestion and embedding tasks asynchronously with Celery
-
-# &#x20;   
-
-# \-   Using Redis as a message broker
-
-# &#x20;   
-
-# \-   Running a multi-service application with Docker Compose
-
-# &#x20;   
-
-# \-   Connecting AI applications to enterprise analytics metadata
-
-# &#x20;   
-
-# \-   Exposing analytics capabilities through MCP tools
-
-# &#x20;   
-
-# \-   Implementing OAuth-based access for external AI clients
-
-# &#x20;   
-
-# \-   Understanding the importance of organization-scoped access
-
-# &#x20;   
-
-# \-   Managing LLM and embedding-provider configuration
-
-# &#x20;   
-
-# 
-
-# \----------
-
-# 
-
-# \## Potential Future Enhancements
-
-# 
-
-# Possible extensions include:
-
-# 
-
-# \-   Evaluating semantic-search precision using a labeled question set
-
-# &#x20;   
-
-# \-   Adding model-ranking metrics such as precision at K and recall at K
-
-# &#x20;   
-
-# \-   Creating automated tests for generated answers
-
-# &#x20;   
-
-# \-   Adding user feedback to improve model retrieval
-
-# &#x20;   
-
-# \-   Detecting undocumented dbt models
-
-# &#x20;   
-
-# \-   Identifying duplicate or overlapping business metrics
-
-# &#x20;   
-
-# \-   Adding column-level semantic search
-
-# &#x20;   
-
-# \-   Expanding model-lineage visualization
-
-# &#x20;   
-
-# \-   Introducing role-based permissions for MCP tools
-
-# &#x20;   
-
-# \-   Adding query and response audit logs
-
-# &#x20;   
-
-# \-   Measuring response latency and token usage
-
-# &#x20;   
-
-# \-   Supporting local embedding models
-
-# &#x20;   
-
-# \-   Supporting local language models
-
-# &#x20;   
-
-# \-   Adding deployment templates for AWS, Azure, or GCP
-
-# &#x20;   
-
-# \-   Creating monitoring dashboards for ingestion failures
-
-# &#x20;   
-
-# \-   Adding automated synchronization with dbt Cloud
-
-# &#x20;   
-
-# \-   Detecting stale documentation and broken model references
-
-# &#x20;   
-
+```
+```
